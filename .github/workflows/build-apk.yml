@@ -46,10 +46,13 @@ jobs:
           fi
           echo "Java 17+ environment verified successfully."
 
-      - name: Set up Gradle 9.3.1
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.3.1'
+      - name: Accept Android SDK licenses
+        run: |
+          yes | sdkmanager --licenses || true
+
+      - name: Grant execute permission for gradlew
+        run: |
+          chmod +x gradlew
 
       - name: Create temporary debug keystore
         run: |
@@ -75,7 +78,7 @@ jobs:
 
       - name: Build debug APK
         run: |
-          gradle :app:assembleDebug --stacktrace --no-daemon
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
       - name: Verify the APK
         run: |
