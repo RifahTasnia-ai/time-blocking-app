@@ -128,20 +128,23 @@ jobs:
           TAG="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
           TITLE="Debug APK Build #${{ github.run_number }}"
 
-          NOTES="### Debug APK Build Details
+          cat << 'EOF' > /tmp/release_notes.txt
+          ### Debug APK Build Details
 
-- **Type**: Automatically generated debug APK
-- **Builder**: GitHub Actions
-- **Run Number**: ${{ github.run_number }}
-- **Run Attempt**: ${{ github.run_attempt }}
-- **Commit SHA**: \`${{ github.sha }}\`
-- **Notice**: This APK is intended for testing only and is not a Play Store production release.
-- **Signing**: Signed with a temporary debug keystore."
+          - **Type**: Automatically generated debug APK
+          - **Builder**: GitHub Actions
+          - **Run Number**: ${{ github.run_number }}
+          - **Run Attempt**: ${{ github.run_attempt }}
+          - **Commit SHA**: ${{ github.sha }}
+          - **Notice**: This APK is intended for testing only and is not a Play Store production release.
+          - **Signing**: Signed with a temporary debug keystore.
+          EOF
+          sed -i 's/^[ \t]*//' /tmp/release_notes.txt
 
           echo "Publishing release with tag: $TAG"
           gh release create "$TAG" "$ASSET_PATH" \
             --title "$TITLE" \
-            --notes "$NOTES" \
+            --notes-file /tmp/release_notes.txt \
             --target "${{ github.sha }}" \
             --latest
 
