@@ -1,0 +1,6 @@
+{
+  "name": "Blocks",
+  "description": "A minimalistic daily time-blocking tracker with archival paper aesthetics, automatic gap-filling, wheel time picker, and full export capabilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
