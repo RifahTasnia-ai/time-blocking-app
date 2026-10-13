@@ -48,7 +48,13 @@ jobs:
 
       - name: Accept Android SDK licenses
         run: |
-          yes | sdkmanager --licenses || true
+          if command -v sdkmanager >/dev/null 2>&1; then
+            yes | sdkmanager --licenses || true
+          elif [ -n "$ANDROID_HOME" ] && [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          elif [ -n "$ANDROID_HOME" ] && [ -x "$ANDROID_HOME/tools/bin/sdkmanager" ]; then
+            yes | "$ANDROID_HOME/tools/bin/sdkmanager" --licenses || true
+          fi
 
       - name: Grant execute permission for gradlew
         run: |
@@ -156,28 +162,33 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_OUTCOME="${{ steps.publish_release.outcome }}"
-          if [ "$RELEASE_OUTCOME" = "success" ]; then
-            echo "GitHub Release successfully published!"
-            TAG="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
-            gh release view "$TAG" || true
+          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK_PATH" ] && [ -s "$APK_PATH" ]; then
+            if [ "${{ steps.publish_release.outcome }}" = "success" ]; then
+              echo "GitHub Release successfully published!"
+              TAG="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
+              gh release view "$TAG" || true
 
-            DIRECT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/app-debug.apk"
-            echo "=========================================="
-            echo "DIRECT APK DOWNLOAD URL:"
-            echo "$DIRECT_URL"
-            echo "Release Asset: app-debug.apk"
-            echo "=========================================="
+              DIRECT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/app-debug.apk"
+              echo "=========================================="
+              echo "DIRECT APK DOWNLOAD URL:"
+              echo "$DIRECT_URL"
+              echo "Release Asset: app-debug.apk"
+              echo "=========================================="
 
-            echo "## DIRECT APK DOWNLOAD" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Direct download link for latest debug APK:" >> "$GITHUB_STEP_SUMMARY"
-            echo "[$DIRECT_URL]($DIRECT_URL)" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "*Note: The standard GitHub Actions artifact 'app-debug-apk' also remains available as a backup.*" >> "$GITHUB_STEP_SUMMARY"
+              echo "## DIRECT APK DOWNLOAD" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "Direct download link for latest debug APK:" >> "$GITHUB_STEP_SUMMARY"
+              echo "[$DIRECT_URL]($DIRECT_URL)" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "*Note: The standard GitHub Actions artifact 'app-debug-apk' also remains available as a backup.*" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "Debug APK build succeeded, but release publishing was skipped or failed."
+              echo "## Build Succeeded" >> "$GITHUB_STEP_SUMMARY"
+              echo "The debug APK artifact **app-debug-apk** is preserved in this run." >> "$GITHUB_STEP_SUMMARY"
+            fi
           else
-            echo "WARNING: GitHub Release publishing failed or was skipped."
-            echo "However, the debug APK build succeeded and the GitHub Actions backup artifact 'app-debug-apk' is preserved."
-            echo "## Release Notice" >> "$GITHUB_STEP_SUMMARY"
-            echo "Release publishing could not be completed. The Actions artifact **app-debug-apk** is preserved in this run." >> "$GITHUB_STEP_SUMMARY"
+            echo "ERROR: Debug APK was NOT created. Gradle build failed."
+            echo "## Build Failed" >> "$GITHUB_STEP_SUMMARY"
+            echo "The Gradle build failed before the APK could be generated. See the 'Build debug APK' step logs above for details." >> "$GITHUB_STEP_SUMMARY"
           fi
